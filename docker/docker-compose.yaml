@@ -1,0 +1,39 @@
+
+
+services:
+  db:
+    container_name: postgres
+    image: postgres:latest
+    restart: always
+    shm_size: 128mb
+    networks: 
+      app_network: {}  # Исправлено использование маппинга
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mvm
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  app:
+    build: ..
+    container_name: fastAPI
+    ports:
+      - "4000:8000"
+    depends_on:
+      - db
+        # condition: service_healthy  # Убедитесь, что db сервис готов
+    networks:
+      app_network: {}  # Правильный синтаксис для подключения к сети
+    volumes:
+      - ..:/app
+    command: "uvicorn --factory app.configurations.app:create_app --reload --host 0.0.0.0 --port 8000"
+
+volumes:
+  postgres_data:
+
+networks:
+  app_network:
+    driver: bridge
