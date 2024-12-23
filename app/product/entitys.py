@@ -1,10 +1,4 @@
-from datetime import datetime
-from decimal import Decimal
-from typing import Any
-from typing_extensions import Unpack
-from pydantic import BaseModel, ConfigDict, field_serializer, model_validator
-
-from .models import Product
+from pydantic import BaseModel, ConfigDict
 
 
 class ProductScheme(BaseModel):

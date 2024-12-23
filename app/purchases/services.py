@@ -1,66 +1,74 @@
 from fastapi import HTTPException
-from app.product.repository import ProductDB
+from ..utils.service import Service
+from .repository import PurchasesRepository, PartyRepository
 from .entitys import (
-    PurchaseRequest,
-    PurchaseResponse,
     PurchaseScheme,
     PartyRequest,
+    PurchaseRequest,
+    PurchaseResponse,
+    PartyResponse,
 )
-from .models import Purchases
-from .repository import PurchasesDB, PartyDB
+
 from ..product.services import ProductService
 from ..supplier.services import SupplierService
 
 
-class PurchaseService:
-    def __init__(self) -> None:
-        self.purchase_repo = PurchasesDB()
-        self.party_repo = PartyDB()
+class PurchasesService(Service):
+    base_repo = PurchasesRepository.name_repo
+
+    def __init__(self):
+        super().__init__()
         self.product_service = ProductService()
         self.supplier_service = SupplierService()
-        self.model = PurchaseResponse
+        self.party_service = PartyService()
 
-    async def add_purchase(self, purchase: PurchaseRequest) -> dict:
-        # Получаем продукт
-        product = await self.product_service.get_product(purchase.product_id)
+    async def get_supplier(self, supplier_id) -> PurchaseResponse | None:
+        async with self.unit_of_work as work:
+            return await work.__dict__[self.base_repo].find_one(supplier_id=supplier_id)
 
-        # Проверяем, есть ли уже активная покупка для данного поставщика
-        supplier_purchase = await self.supplier_service.get_supplier_and_purchase(
-            purchase.supplier_id
-        )
-        if not supplier_purchase.purchases:
-            # Если у поставщика еще нет покупок, создаем новую
-            new_purchase = PurchaseScheme(supplier_id=purchase.supplier_id)
+    async def add(self, entity: PurchaseScheme):
+        product = await self.product_service.get(entity.product_id)
+        supplier = await self.supplier_service.get(entity.supplier_id)
+        party = PartyRequest.model_validate({**entity.model_dump(), "product": product})
 
-            new_item = PartyRequest(
-                product=product,
-                quantity=purchase.quantity,
-                product_id=product.id,
+        old_purchase = await self.get_supplier(supplier.id)
+        purchase_data = entity.model_dump()
+        async with self.unit_of_work as work:
+            if old_purchase:
+                old_purchase.update_total(party.cost)
+                party.purchase_id = old_purchase.id
+                purchase_data["total_amount"] = old_purchase.total_amount
+                await self.update(old_purchase.id, PurchaseRequest(**purchase_data))
+            else:
+                purchase = PurchaseRequest.model_validate(entity)
+                purchase.update_total(party.cost)
+                result = await super().add(purchase)
+                party.purchase_id = result.get("id")
+            self.party_service.set_session(work)
+            return await self.party_service.add(party)
+
+    async def delete(self, id):
+        async with self.unit_of_work as work:
+            self.party_service.set_session(work)
+            party = await self.party_service.delete(id)
+            purchase = await self.get(id=party.purchase_id)
+            purchase.calculate_total_amount()
+            data = PurchaseRequest(
+                supplier_id=purchase.supplier.id,
+                product_id=party.product_id,
+                quantity=party.quantity,
+                total_amount=purchase.total_amount,
             )
-            new_purchase.update_total(new_item.cost)
-            # Сохраняем новую покупку и возвращаем данные
-            saved_purchase = await self.purchase_repo.add(new_purchase)
-            new_item.purchase_id = saved_purchase
-            await self.party_repo.add(new_item)
-            return saved_purchase
+            await super().set_session(work).update(purchase.id, data)
+            return party
 
-        else:
-            saved_purchase = PurchaseScheme.model_validate(supplier_purchase.purchases)
-            new_item = PartyRequest(
-                product=product,
-                quantity=purchase.quantity,
-                product_id=product.id,
-                purchase_id=supplier_purchase.purchases.id,
-            )
-            saved_purchase.update_total(new_item.cost)
-            await self.party_repo.add(new_item)
-            updated_purchase = await self.purchase_repo.update_by_id(
-                supplier_purchase.purchases.id, saved_purchase
-            )
-            return updated_purchase
 
-    async def get_purchase(self, _id: int):
-        purchase = await self.purchase_repo.get_by_id(_id)
-        if purchase:
-            return self.model.model_validate(purchase)
-        raise HTTPException(status_code=404, detail="purchase not found")
+class PartyService(Service):
+    base_repo = PartyRepository.name_repo
+
+    async def get_all_where_product(self, product_id) -> list[PartyResponse] | None:
+        async with self.unit_of_work as work:
+            res = await work.__dict__[self.base_repo].find_all_where_filter(product_id)
+            if res:
+                return res
+            raise HTTPException(status_code=404, detail="Not Found party product")

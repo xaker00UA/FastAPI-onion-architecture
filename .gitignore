@@ -1,4 +1,11 @@
 dev.env
-.test.env
+# .test.env
 .vscode
 __pycache__
+test
+.pytest_cache
+migrations
+.gitignore
+alembic.ini
+log.log
+test.py

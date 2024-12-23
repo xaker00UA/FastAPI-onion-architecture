@@ -1,6 +1,5 @@
 from datetime import datetime
-from decimal import Decimal
-from ..configurations.database import Base
+from ..configurations.db import Base
 from typing import Annotated
 from sqlalchemy import (
     TIMESTAMP,
@@ -10,8 +9,8 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from .entitys import PartyResponse, PurchaseResponse
 
-# intpk = Annotated[BigInteger, mapped_column(primary_key=True)]
 many = Annotated[DECIMAL, mapped_column(DECIMAL(10, 2))]
 
 
@@ -19,13 +18,18 @@ class Purchases(Base):
     __tablename__ = "purchases"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    supplier_id: Mapped[BigInteger] = mapped_column(ForeignKey("suppliers.id"))
+    supplier_id: Mapped[BigInteger] = mapped_column(
+        ForeignKey("suppliers.id", ondelete="SET NULL")
+    )
     total_amount: Mapped[many]
 
     items: Mapped[list["Party"]] = relationship(
         "Party", back_populates="purchase", lazy="joined"
     )
     supplier = relationship("Supplier", back_populates="purchases", lazy="joined")
+
+    def to_read_model(self):
+        return PurchaseResponse.model_validate(self)
 
 
 class Party(Base):
@@ -42,14 +46,10 @@ class Party(Base):
         nullable=False,
     )
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        # Пример использования при инициализации:
-        if self.product:
-            self.cost = self.quantity * self.product.price
-
-    cost: Mapped[Decimal] = mapped_column(DECIMAL(precision=10, scale=2))
     purchase: Mapped["Purchases"] = relationship(back_populates="items")
     product = relationship(
         "Product", back_populates="parties", passive_deletes=True, lazy="joined"
     )
+
+    def to_read_model(self):
+        return PartyResponse.model_validate(self)

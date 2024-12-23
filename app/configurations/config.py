@@ -1,9 +1,7 @@
 from functools import cached_property
+import os
 from pydantic import field_validator, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):

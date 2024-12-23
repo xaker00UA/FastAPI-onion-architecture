@@ -1,2 +1,11 @@
 .vscode
 test
+__pycache__
+.pytest_cache
+migrations
+.gitignore
+alembic.ini
+log.log
+test.py
+dev.env
+test.env

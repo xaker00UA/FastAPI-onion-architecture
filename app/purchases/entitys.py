@@ -1,22 +1,34 @@
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, ConfigDict, model_validator, computed_field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    model_serializer,
+    model_validator,
+    computed_field,
+)
 
 from ..supplier.entitys import SupplierResponse
 from ..product.entitys import ProductResponse
 
 
-class PurchaseRequest(BaseModel):
+class PurchaseScheme(BaseModel):
     supplier_id: int
     product_id: int
     quantity: int
 
 
-class PurchaseScheme(BaseModel):
-    supplier_id: int
+class PurchaseRequest(PurchaseScheme):
     total_amount: Decimal = 0
 
-    model_config = ConfigDict(from_attributes=True, extra="allow")
+    model_config = ConfigDict(from_attributes=True)
+
+    @model_serializer()
+    def serialize_model(self):
+        return {
+            "total_amount": self.total_amount,
+            "supplier_id": self.supplier_id,
+        }
 
     def update_total(self, count):
         self.total_amount += count
@@ -27,23 +39,27 @@ class PurchaseScheme(BaseModel):
             self.total_amount += item.price
 
 
-class PartyRequest(BaseModel):
+class PartyRequest(PurchaseScheme):
     product: ProductResponse
     quantity: int
 
-    model_config = ConfigDict(extra="allow")
+    purchase_id: int = -1
+
+    model_config = ConfigDict(from_attributes=True)
 
     @computed_field
     @property
-    def cost(self) -> Decimal:
-        """
-        Вычисляет стоимость партии на основе цены продукта и количества.
-        """
-        if self.product.price is None:
-            raise ValueError("Price of the product must be defined")
-        return Decimal(self.product.price).quantize(Decimal("0.01")) * Decimal(
-            self.quantity
-        )
+    def cost(self) -> float:
+        return self.product.price * self.quantity
+
+    @model_serializer()
+    def serialize_model(self):
+        return {
+            "product_id": self.product.id,
+            "quantity": self.quantity,
+            "cost": self.cost,
+            "purchase_id": self.purchase_id,
+        }
 
 
 class PartyResponse(BaseModel):
@@ -60,6 +76,16 @@ class PurchaseResponse(BaseModel):
     id: int
     total_amount: float
     supplier: SupplierResponse
-    items: list[PartyResponse]
+    items: list[PartyResponse] | None
 
     model_config = ConfigDict(from_attributes=True)
+
+    def update_total(self, count):
+        self.total_amount += count
+
+    def calculate_total_amount(
+        self,
+    ):
+        self.total_amount = 0
+        for item in self.items:
+            self.total_amount += item.cost

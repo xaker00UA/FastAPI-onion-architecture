@@ -1,16 +1,13 @@
-from asyncpg import UniqueViolationError
-from ..configurations.context_manager import get_db
+from sqlalchemy import select
+from ..utils.repositorie import SQLAlchemyRepository
 from .models import Customer
-from .entitys import CustomerScheme
-from ..configurations.repository import BaseCrud
 
 
-class CustomerDB(BaseCrud):
+class CustomerRepository(SQLAlchemyRepository):
     model = Customer
+    name_repo = "customer"
 
-    async def add(self, object):
-        try:
-            data = await super().add(object)
-            return data
-        except UniqueViolationError:
-            return "unique email"
+    async def is_email_unique(self, email: str) -> bool:
+        query = select(self.model).where(self.model.email == email)
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()

@@ -1,35 +1,41 @@
-from fastapi import APIRouter, Depends, Form
 from typing import Annotated
 
-from .entitys import PurchaseScheme, PurchaseRequest
-from .services import PurchaseService
+from fastapi import APIRouter, Depends
+
+from .services import PurchasesService, PartyService
+from ..utils.service import ServiceAbstract
+from .entitys import PurchaseScheme
 
 router = APIRouter(tags=["purchases"], prefix="/purchases")
+service = Annotated[PurchasesService, Depends(PurchasesService)]
+party = Annotated[ServiceAbstract, Depends(PartyService)]
 
-data = Annotated[PurchaseRequest, Form()]
+
+@router.get("/all")
+async def get_all_party(service: party):
+    return await service.get_all()
+
+
+@router.get("/{id}")
+async def get_party(id: int, service: party):
+    return await service.get(id)
+
+
+@router.get("/all/purchases")
+async def get_all_purchases(service: service):
+    return await service.get_all()
 
 
 @router.get("/")
-async def get_all_purchases(
-    purchase_id: int, service: PurchaseService = Depends(PurchaseService)
-):
-    return await service.get_purchase(purchase_id)
+async def get_purchase_supplier(supplier_id: int, service: service):
+    return await service.get_supplier(supplier_id)
 
 
-@router.post("/")
-async def create_purchase(
-    purchase: data, service: PurchaseService = Depends(PurchaseService)
-):
-    return await service.add_purchase(purchase)
+@router.post("/", status_code=201)
+async def create_purchase(purchase: PurchaseScheme, service: service):
+    return await service.add(purchase)
 
 
-@router.delete("/{object}")
-async def delete_purchase(object: int):
-    pass
-
-
-@router.get("/{object}")
-async def get_purchase(
-    object: int, service: PurchaseService = Depends(PurchaseService)
-):
-    pass
+@router.delete("/{id}")
+async def delete_purchase(id: int, service: service):
+    return await service.delete(id)
