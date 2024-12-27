@@ -7,7 +7,7 @@ services:
     restart: always
     shm_size: 128mb
     networks: 
-      app_network: {}  # Исправлено использование маппинга
+      deploy_default: {}
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -19,21 +19,27 @@ services:
 
   app:
     build: ..
-    container_name: fastAPI
+    container_name: mvm_easy_model
     ports:
-      - "4000:8000"
+      - "3000:8000"
+    environment:
+      - host=db
+      - port=5432
+      - user=user
+      - password=password
+      - db_name=mvm
+      - mode=DEV
     depends_on:
       - db
         # condition: service_healthy  # Убедитесь, что db сервис готов
     networks:
-      app_network: {}  # Правильный синтаксис для подключения к сети
-    volumes:
-      - ..:/app
-    command: "uvicorn --factory app.configurations.app:create_app --reload --host 0.0.0.0 --port 8000"
+      deploy_default: {}  # Правильный синтаксис для подключения к сети
+    
+    command: "poetry run uvicorn --factory app.configurations.app:create_app --reload --host 0.0.0.0 --port 8000"
 
 volumes:
   postgres_data:
 
 networks:
-  app_network:
-    driver: bridge
+  deploy_default:
+    external: true

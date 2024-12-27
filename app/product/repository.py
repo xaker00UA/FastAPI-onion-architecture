@@ -1,9 +1,7 @@
-from asyncpg import UniqueViolationError
-from ..configurations.context_manager import get_db
+from ..utils.repositorie import SQLAlchemyRepository
 from .models import Product
-from .entitys import ProductScheme
-from ..configurations.repository import BaseCrud
 
 
-class ProductDB(BaseCrud):
+class ProductRepository(SQLAlchemyRepository):
     model = Product
+    name_repo = "product"

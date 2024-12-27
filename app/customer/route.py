@@ -1,41 +1,35 @@
-from fastapi import APIRouter, Depends, Request
+from typing import Annotated
+from fastapi import APIRouter, Depends
 from .services import CustomerService
-from .entitys import CustomerScheme
+from ..utils.service import ServiceAbstract
+from .entitys import CustomerScheme, CustomerResponse
 
-router = APIRouter(tags=["customer"], prefix="/customer")
-
-
-@router.post("/")
-async def create_customer(
-    customer: CustomerScheme, service: CustomerService = Depends(CustomerService)
-):
-    _id = await service.add_customer(customer)
-    return {"id": _id}
+router = APIRouter(prefix="/customer", tags=["customer"])
 
 
-@router.get("/all")
-async def get_customer(service: CustomerService = Depends(CustomerService)):
-    return await service.get_customers()
+service = Annotated[ServiceAbstract, Depends(CustomerService)]
 
 
-@router.get("/{customer}")
-async def get_customer(
-    customer: int, service: CustomerService = Depends(CustomerService)
-):
-    return await service.get_customer(customer)
+@router.get("/all", response_model=list[CustomerResponse])
+async def get_all_customers(service: service):
+    return await service.get_all()
 
 
-@router.delete("/{customer}")
-async def get_customer(
-    customer: int, service: CustomerService = Depends(CustomerService)
-):
-    return await service.delete_customer(customer)
+@router.get("/{id}", response_model=CustomerResponse)
+async def get_customer(id: int, service: service):
+    return await service.get(id)
 
 
-@router.put("/{customer}")
-async def get_customer(
-    customer: int,
-    object: CustomerScheme,
-    service: CustomerService = Depends(CustomerService),
-):
-    return await service.update_customer(customer, object)
+@router.post("/", status_code=201)
+async def create_customer(data: CustomerScheme, service: service):
+    return await service.add(data)
+
+
+@router.put("/{id}")
+async def update_customer(id: int, data: CustomerScheme, service: service):
+    return await service.update(id, data)
+
+
+@router.delete("/{id}", response_model=CustomerResponse)
+async def delete_customer(id: int, service: service):
+    return await service.delete(id)

@@ -1,9 +1,8 @@
-FROM  python:3.12.7-slim
+FROM python:3.12.8-slim 
 WORKDIR /app
-RUN pip install --upgrade pip
-RUN pip install poetry
-ADD pyproject.toml .
+RUN pip install poetry 
 RUN poetry config virtualenvs.create false
-RUN poetry install --no-root --no-interaction --no-ansi
-EXPOSE 8000
-COPY . .
+COPY pyproject.toml poetry.lock ./
+RUN poetry install --only main # Установка без зависимостей для разработки
+ADD . ./
+

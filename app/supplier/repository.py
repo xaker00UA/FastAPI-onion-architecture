@@ -1,21 +1,13 @@
 from sqlalchemy import select
-from sqlalchemy.orm import joinedload
+from ..utils.repositorie import SQLAlchemyRepository
 from .models import Supplier
-from ..customer.repository import CustomerDB
 
 
-class SupplierDB(CustomerDB):
-    model: Supplier = Supplier
+class SupplierRepository(SQLAlchemyRepository):
+    model = Supplier
+    name_repo = "supplier"
 
-    async def get_by_id_where_purchase(self, id: int) -> Supplier | None:
-        async with self.get_session() as ses:
-            result = await ses.execute(
-                select(self.model)
-                .options(
-                    joinedload(self.model.purchases)
-                )  # Подгружаем связанные покупки
-                .filter(self.model.id == id)  # Фильтруем по id
-            )
-            return (
-                result.scalars().first()
-            )  # Возвращаем первую найденную запись или None
+    async def is_email_unique(self, email: str) -> bool:
+        query = select(self.model).where(self.model.email == email)
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
