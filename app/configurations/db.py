@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 from .config import settings
 from sqlalchemy import AsyncAdaptedQueuePool, NullPool
+import asyncio
 
 engine = create_async_engine(
     settings.db_dsn,
