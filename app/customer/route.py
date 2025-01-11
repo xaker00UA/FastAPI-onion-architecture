@@ -4,7 +4,7 @@ from .services import CustomerService
 from ..utils.service import ServiceAbstract
 from .entitys import CustomerScheme, CustomerResponse
 
-router = APIRouter(prefix="/customer", tags=["customer"])
+router = APIRouter(prefix="/customers", tags=["customer"])
 
 
 service = Annotated[ServiceAbstract, Depends(CustomerService)]

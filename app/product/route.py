@@ -4,7 +4,7 @@ from .services import ProductService
 from ..utils.service import ServiceAbstract
 from .entitys import ProductScheme, ProductResponse
 
-router = APIRouter(tags=["product"], prefix="/product")
+router = APIRouter(tags=["product"], prefix="/products")
 
 service = Annotated[ServiceAbstract, Depends(ProductService)]
 

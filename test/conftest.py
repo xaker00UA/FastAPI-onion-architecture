@@ -6,7 +6,7 @@ import pytest
 from app.configurations.config import settings
 from httpx import AsyncClient, ASGITransport
 from contextlib import asynccontextmanager
-from asgi_lifespan import LifespanManager
+
 
 # app = create_app()
 

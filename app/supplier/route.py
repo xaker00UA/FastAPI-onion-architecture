@@ -5,7 +5,7 @@ from .services import SupplierService
 from ..utils.service import ServiceAbstract
 from .entitys import CustomerScheme, CustomerResponse
 
-router = APIRouter(prefix="/supplier", tags=["supplier"])
+router = APIRouter(prefix="/suppliers", tags=["supplier"])
 
 
 service = Annotated[ServiceAbstract, Depends(SupplierService)]
