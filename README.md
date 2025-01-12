@@ -5,10 +5,10 @@
 
 6 сущностей в проекте вот между ними связь
 
-![dependency](public\database.png "entity")
+![dependency](public/database.png "entity")
 
 ### У каждой сущности есть свой **api** на **crud** операции
-![api](public\api.png "api")
+![api](public/api.png "api")
 ### Для запуска пректа скопируйте его себе с помощью команды `git clone` перейди в папку и выполните следущие команды 
 
 
