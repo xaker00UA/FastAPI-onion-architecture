@@ -71,6 +71,7 @@ class SalesService(Service):
     async def delete(self, id):
         async with self.unit_of_work as work:
             self.party_service.set_session(work)
+            party_response = await self.sales_item_service.get(id)
             party = await self.sales_item_service.delete(id)
             sales = await self.get(id=party.sales_id)
             sales.calculate_total_amount()
@@ -81,7 +82,7 @@ class SalesService(Service):
                 total_amount=sales.total_amount,
             )
             await self.update(sales.id, data)
-            return party
+            return party_response
 
     async def update_party_quantities(self, parts, required_quantity):
         """Обновляем количество товара в партиях."""

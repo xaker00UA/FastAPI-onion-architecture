@@ -50,6 +50,7 @@ class PurchasesService(Service):
     async def delete(self, id):
         async with self.unit_of_work as work:
             self.party_service.set_session(work)
+            party_response = await self.party_service.get(id)
             party = await self.party_service.delete(id)
             purchase = await self.get(id=party.purchase_id)
             purchase.calculate_total_amount()
@@ -60,7 +61,7 @@ class PurchasesService(Service):
                 total_amount=purchase.total_amount,
             )
             await super().set_session(work).update(purchase.id, data)
-            return party
+            return party_response
 
 
 class PartyService(Service):

@@ -1,8 +1,11 @@
 from abc import ABC, abstractmethod
 
 from sqlalchemy import delete, insert, select, update
+from sqlalchemy.orm import joinedload
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..configurations.context_manager import get_db
+from fastapi import HTTPException
 
 
 class AbstractRepository(ABC):
@@ -80,9 +83,14 @@ class SQLAlchemyRepository(AbstractRepository):
         return res
 
     async def delete_one(self, id: int) -> int:
-        stmt = delete(self.model).where(self.model.id == id).returning(self.model)
-        res = await self.session.execute(stmt)
-        res = res.scalar_one_or_none()
-        if res:
-            res = res.to_read_model()
-        return res
+        try:
+            stmt = delete(self.model).where(self.model.id == id).returning(self.model)
+            res = await self.session.execute(stmt)
+            res = res.scalar_one_or_none()
+            if res:
+                res = res.to_read_model()
+            return res
+        except IntegrityError:
+            raise HTTPException(
+                status_code=409, detail="Cannot delete model due to links"
+            )

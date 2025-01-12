@@ -32,7 +32,7 @@ async def get_purchase_supplier(customer_id: int, service: service):
 
 
 @router.post("/", status_code=201)
-async def create_purchase(purchase: SaleScheme, service: service) -> int:
+async def create_purchase(purchase: SaleScheme, service: service):
     return await service.add(purchase)
 
 
